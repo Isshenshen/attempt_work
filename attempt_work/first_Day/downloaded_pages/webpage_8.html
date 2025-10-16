@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页 - 我的博客</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 基础样式 -->
+    <link rel="stylesheet" href="http://47.76.50.153:8000/static/css/base.css">
+    
+    
+<link rel="stylesheet" href="http://47.76.50.153:8000/static/css/home_modern.css">
+
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand">
+                <i class="fas fa-blog"></i>
+                <span>我的博客</span>
+            </a>
+            
+            <button class="menu-toggle" id="menuToggle" aria-label="切换菜单">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <ul class="navbar-menu" id="navbarMenu">
+                <li><a href="/" class="nav-link" data-page="home"><i class="fas fa-home"></i> 首页</a></li>
+                <li><a href="/blog" class="nav-link" data-page="blog"><i class="fas fa-book"></i> 博客列表</a></li>
+                <li><a href="/about" class="nav-link" data-page="about"><i class="fas fa-user"></i> 关于我</a></li>
+                <li><a href="/contact" class="nav-link" data-page="contact"><i class="fas fa-envelope"></i> 联系方式</a></li>
+                <li><a href="/admin/login" class="nav-link" data-page="admin"><i class="fas fa-user-shield"></i> 管理后台</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- 主内容区域 -->
+    <main>
+        
+<div class="home-container">
+    <!-- 欢迎区域 -->
+    <div class="welcome-section">
+        <h1><i class="fas fa-blog"></i> 我的技术博客</h1>
+        <p>分享编程经验，记录技术成长</p>
+    </div>
+    
+    <!-- 博客文章网格 -->
+    <div class="posts-grid" id="postsGrid">
+        <div class="loading-state" id="loadingState">
+            <i class="fas fa-spinner"></i>
+            <p>正在加载精彩内容...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+console.log('现代化首页开始加载');
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM加载完成，开始加载文章');
+    
+    // 延迟执行确保DOM完全加载
+    setTimeout(function() {
+        loadPosts();
+    }, 500);
+});
+
+function loadPosts() {
+    console.log('loadPosts函数被调用');
+    
+    const postsGrid = document.getElementById('postsGrid');
+    const loadingState = document.getElementById('loadingState');
+    
+    console.log('postsGrid:', postsGrid);
+    console.log('loadingState:', loadingState);
+    
+    if (!postsGrid) {
+        console.error('找不到postsGrid元素');
+        return;
+    }
+    
+    console.log('开始调用API...');
+    
+    fetch('/api/posts/all')
+        .then(response => {
+            console.log('API响应状态:', response.status);
+            if (!response.ok) {
+                throw new Error('API调用失败: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(posts => {
+            console.log('获取到文章数据:', posts);
+            
+            // 隐藏加载状态
+            if (loadingState) {
+                loadingState.style.display = 'none';
+            }
+            
+            if (posts.length === 0) {
+                showEmptyState();
+            } else {
+                renderPosts(posts);
+            }
+        })
+        .catch(error => {
+            console.error('加载文章失败:', error);
+            if (loadingState) {
+                loadingState.style.display = 'none';
+            }
+            showErrorState(error.message);
+        });
+}
+
+function showEmptyState() {
+    const postsGrid = document.getElementById('postsGrid');
+    const isAdmin = false;
+    
+    let createButtonHtml = '';
+    if (isAdmin) {
+        createButtonHtml = `
+            <a href="/create" class="btn-create">
+                <i class="fas fa-plus"></i> 创建文章
+            </a>
+        `;
+    }
+    
+    postsGrid.innerHTML = `
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <h3>暂无文章</h3>
+            <p>还没有发布任何文章！</p>
+            ${createButtonHtml}
+        </div>
+    `;
+}
+
+function showErrorState(errorMessage) {
+    const postsGrid = document.getElementById('postsGrid');
+    postsGrid.innerHTML = `
+        <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>加载失败</h3>
+            <p>无法加载文章列表：${errorMessage}</p>
+            <button class="btn-create" onclick="location.reload()">
+                <i class="fas fa-refresh"></i> 重新加载
+            </button>
+        </div>
+    `;
+}
+
+function renderPosts(posts) {
+    console.log('开始渲染文章，数量:', posts.length);
+    
+    const postsGrid = document.getElementById('postsGrid');
+    postsGrid.innerHTML = '';
+    
+    posts.forEach((post, index) => {
+        console.log('渲染文章:', post.title);
+        
+        const card = document.createElement('div');
+        card.className = 'post-card';
+        card.style.animationDelay = (index * 0.1) + 's';
+        
+        const createdDate = new Date(post.created_at).toLocaleDateString('zh-CN');
+        const summary = post.summary || (post.content ? post.content.substring(0, 120) + '...' : '暂无摘要');
+        const readTime = Math.ceil((post.content ? post.content.length : 0) / 200);
+        
+        // 根据文章ID选择不同的图标
+        const icons = ['fas fa-code', 'fas fa-database', 'fas fa-server', 'fas fa-mobile-alt', 'fas fa-cloud'];
+        const iconClass = icons[post.id % icons.length];
+        
+        card.innerHTML = `
+            <div class="post-image">
+                <div class="post-image-icon">
+                    <i class="${iconClass}"></i>
+                </div>
+            </div>
+            <div class="post-content">
+                <h2 class="post-title">${escapeHtml(post.title)}</h2>
+                <p class="post-summary">${escapeHtml(summary)}</p>
+                <div class="post-meta">
+                    <div class="post-date">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${createdDate}</span>
+                    </div>
+                    <div class="post-id">
+                        <i class="fas fa-hashtag"></i>
+                        <span>ID: ${post.id}</span>
+                    </div>
+                    <div class="read-time">
+                        <i class="fas fa-clock"></i>
+                        <span>${readTime}分钟</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="btn-read" onclick="goToPost(${post.id})">
+                        <i class="fas fa-eye"></i> 阅读全文
+                    </button>
+                    <button class="btn-like" onclick="toggleLike(${post.id}, this)">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        postsGrid.appendChild(card);
+    });
+    
+    console.log('文章渲染完成');
+}
+
+function goToPost(postId) {
+    window.location.href = `/post/${postId}`;
+}
+
+function toggleLike(postId, button) {
+    const isLiked = button.classList.contains('liked');
+    
+    if (isLiked) {
+        button.classList.remove('liked');
+        button.innerHTML = '<i class="fas fa-heart"></i>';
+        showMessage('已取消点赞', 'info');
+    } else {
+        button.classList.add('liked');
+        button.innerHTML = '<i class="fas fa-heart"></i>';
+        showMessage('点赞成功！', 'success');
+    }
+}
+
+function showMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message message-${type}`;
+    messageDiv.textContent = message;
+    
+    Object.assign(messageDiv.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        color: 'white',
+        fontSize: '14px',
+        fontWeight: '500',
+        zIndex: '9999',
+        opacity: '0',
+        transform: 'translateX(100%)',
+        transition: 'all 0.3s ease'
+    });
+    
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        info: '#3b82f6',
+        warning: '#f59e0b'
+    };
+    messageDiv.style.backgroundColor = colors[type] || colors.info;
+    
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.opacity = '1';
+        messageDiv.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        messageDiv.style.opacity = '0';
+        messageDiv.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(messageDiv);
+        }, 300);
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-text">
+                &copy; 2025 我的博客. 保留所有权利.
+            </div>
+            <div class="footer-links">
+                <a href="https://github.com" target="_blank" title="GitHub"><i class="fab fa-github"></i></a>
+                <a href="https://twitter.com" target="_blank" title="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="https://linkedin.com" target="_blank" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                <a href="/rss" title="RSS"><i class="fas fa-rss"></i></a>
+            </div>
+        </div>
+    </footer>
+    
+    
+    <!-- 基础JavaScript -->
+    <script src="http://47.76.50.153:8000/static/js/base.js"></script>
+    
+    
+</body>
+</html>
